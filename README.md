@@ -50,111 +50,74 @@ secure-coding/
 └── README.md
 ```
 
-## 환경 설정
+## 실행 방법 (Docker만 사용)
+
+로컬에 Python, Node.js, npm 또는 PostgreSQL을 설치할 필요가 없습니다. Docker Desktop만 설치하고 실행한 뒤, 프로젝트 최상위 폴더에서 아래 명령을 실행하세요.
 
 ### 사전 요구사항
 
-- Python 3.10+
-- Node.js 18+
-- npm
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/) 실행 상태
+- Windows PowerShell
 
-### 백엔드 설정
+### 최초 실행
 
-```bash
-cd backend
+```powershell
+# 배포용 환경변수 파일 생성
+Copy-Item .env.example .env
 
-# 가상환경 생성 및 활성화 (Windows)
-python -m venv venv
-venv\Scripts\activate
+# .env 파일을 열어 POSTGRES_PASSWORD, SECRET_KEY,
+# JWT_SECRET_KEY, ADMIN_PASSWORD 값을 반드시 변경
 
-# 의존성 설치
-pip install -r requirements.txt
-
-# 환경변수 설정
-copy .env.example .env
-# .env 파일에서 SECRET_KEY, JWT_SECRET_KEY 등을 변경하세요
-```
-
-### 프론트엔드 설정
-
-```bash
-cd frontend
-npm install
-```
-
-## 실행 방법
-
-### 1. 백엔드 서버 실행
-
-```bash
-cd backend
-venv\Scripts\activate   # Windows
-python run.py
-```
-
-서버가 `http://localhost:5000` 에서 실행됩니다.
-
-### 2. 프론트엔드 개발 서버 실행
-
-```bash
-cd frontend
-npm run dev
-```
-
-브라우저에서 `http://localhost:5173` 접속
-
-## 기본 관리자 계정
-
-`.env` 파일 설정값 기준 (변경 가능):
-
-| 항목 | 기본값 |
-|------|--------|
-| 아이디 | admin |
-| 비밀번호 | Admin@12345 |
-
-## API Base URL
-
-```
-http://localhost:5000/api
-```
-
-## 프로덕션 빌드
-
-```bash
-# 프론트엔드 빌드
-cd frontend
-npm run build
-
-# 빌드 결과물(dist/)을 Flask static 폴더에 배치하거나
-# Nginx 등 리버스 프록시로 서빙
-```
-
-프로덕션 환경에서는 반드시 HTTPS(TLS)를 적용하세요.
-
-## Docker 배포
-
-Docker Compose로 PostgreSQL DB, Flask API, Vue/Nginx 프론트엔드를 함께 실행할 수 있습니다.
-프론트엔드는 기본적으로 `http://localhost:8080`에서 제공되며, API와 WebSocket은 Nginx를 통해 내부 백엔드로 전달됩니다.
-
-```bash
-# 프로젝트 최상위에서 실행
-copy .env.example .env
-# .env의 비밀번호와 SECRET_KEY, JWT_SECRET_KEY를 반드시 변경
+# DB, 백엔드, 프론트엔드 이미지 빌드 및 실행
 docker compose up --build -d
 ```
 
-상태 확인과 종료는 아래 명령을 사용합니다.
+실행이 완료되면 브라우저에서 `http://localhost:8080`으로 접속합니다.
 
-```bash
+### 구성
+
+| 서비스 | 역할 | 외부 접속 |
+|------|------|----------|
+| frontend | Vue SPA를 제공하는 Nginx, API/WebSocket 프록시 | `http://localhost:8080` |
+| backend | Flask API 및 Socket.IO 서버 | 내부 네트워크에서만 접근 |
+| db | PostgreSQL 데이터베이스 | 내부 네트워크에서만 접근 |
+
+### 관리 명령
+
+```powershell
+# 컨테이너 실행 상태 확인
 docker compose ps
+
+# 모든 서비스 로그 확인
 docker compose logs -f
+
+# 특정 서비스 로그 확인
+docker compose logs -f backend
+
+# 서비스 중지 및 컨테이너 제거 (데이터는 유지)
 docker compose down
+
+# 다음 실행 시 재시작
+docker compose up -d
 ```
 
-`postgres_data`(DB)와 `uploads_data`(업로드 이미지)는 Docker 볼륨으로 보존됩니다. 데이터를 포함해 완전히 초기화하려면 `docker compose down -v`를 사용합니다.
+### 데이터 유지 및 초기화
+
+PostgreSQL 데이터는 `postgres_data` 볼륨에, 업로드 이미지는 `uploads_data` 볼륨에 보존됩니다. 따라서 `docker compose down` 후 다시 실행해도 데이터는 유지됩니다.
+
+과제 데이터를 포함해 완전히 초기화해야 할 때만 아래 명령을 사용하세요.
+
+```powershell
+docker compose down -v
+```
+
+### 기본 관리자 계정
+
+관리자 계정은 `.env`의 `ADMIN_USERNAME`, `ADMIN_PASSWORD`, `ADMIN_EMAIL` 값으로 처음 DB가 생성될 때 만들어집니다. `.env.example`의 예시 비밀번호는 반드시 변경해야 합니다.
 
 ## 기술 스택
 
 - **Backend**: Python 3, Flask, SQLAlchemy, Flask-JWT-Extended, Flask-SocketIO
 - **Frontend**: Vue 3, Vue Router, Pinia, Axios, Socket.IO Client, Vite
-- **Database**: SQLite (개발용, PostgreSQL 등으로 교체 가능)
+- **Database**: PostgreSQL 16
+- **Deployment**: Docker Compose, Nginx
