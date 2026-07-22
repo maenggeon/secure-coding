@@ -131,6 +131,28 @@ npm run build
 
 프로덕션 환경에서는 반드시 HTTPS(TLS)를 적용하세요.
 
+## Docker 배포
+
+Docker Compose로 PostgreSQL DB, Flask API, Vue/Nginx 프론트엔드를 함께 실행할 수 있습니다.
+프론트엔드는 기본적으로 `http://localhost:8080`에서 제공되며, API와 WebSocket은 Nginx를 통해 내부 백엔드로 전달됩니다.
+
+```bash
+# 프로젝트 최상위에서 실행
+copy .env.example .env
+# .env의 비밀번호와 SECRET_KEY, JWT_SECRET_KEY를 반드시 변경
+docker compose up --build -d
+```
+
+상태 확인과 종료는 아래 명령을 사용합니다.
+
+```bash
+docker compose ps
+docker compose logs -f
+docker compose down
+```
+
+`postgres_data`(DB)와 `uploads_data`(업로드 이미지)는 Docker 볼륨으로 보존됩니다. 데이터를 포함해 완전히 초기화하려면 `docker compose down -v`를 사용합니다.
+
 ## 기술 스택
 
 - **Backend**: Python 3, Flask, SQLAlchemy, Flask-JWT-Extended, Flask-SocketIO

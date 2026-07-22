@@ -38,6 +38,10 @@ def create_app(config_class=Config):
     app.register_blueprint(transactions_bp, url_prefix="/api/transactions")
     app.register_blueprint(admin_bp, url_prefix="/api/admin")
 
+    @app.get("/health")
+    def health_check():
+        return {"status": "ok"}, 200
+
     @app.route("/api/uploads/<path:filename>")
     def uploaded_file(filename):
         return send_from_directory(app.config["UPLOAD_FOLDER"], filename)
