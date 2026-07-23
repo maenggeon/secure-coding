@@ -1,7 +1,7 @@
 from flask import Blueprint, current_app, request
-from flask_jwt_extended import create_access_token
+from flask_jwt_extended import create_access_token, get_jwt
 
-from app.extensions import db
+from app.extensions import db, blocklist
 from app.models.user import User
 from app.services.audit_service import log_event
 from app.services.chat_service import create_csrf_token
@@ -146,6 +146,9 @@ def login():
 @csrf_required
 def logout(user):
     from app.models.csrf_token import CsrfToken
+
+    jti = get_jwt()["jti"]
+    blocklist.add(jti)
 
     CsrfToken.query.filter_by(user_id=user.id).delete()
     db.session.commit()
