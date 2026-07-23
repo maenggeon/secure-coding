@@ -1,9 +1,11 @@
 import hashlib
+import io
 import os
 import re
 import secrets
 from datetime import datetime, timedelta, timezone
 
+from PIL import Image
 from flask import current_app, jsonify, request
 from werkzeug.utils import secure_filename
 
@@ -87,16 +89,24 @@ def allowed_file(filename, mimetype):
 def save_product_image(file):
     if not file or file.filename == "":
         return None, None
-
     if not allowed_file(file.filename, file.mimetype):
         return None, "허용되지 않는 파일 형식입니다."
 
+    raw = file.read()
+    try:
+        img = Image.open(io.BytesIO(raw))
+        img.verify()                     # 실제 이미지 구조 검증
+        img = Image.open(io.BytesIO(raw))
+        if img.format.lower() not in {"png", "jpeg", "gif", "webp"}:
+            return None, "허용되지 않는 파일 형식입니다."
+    except Exception:
+        return None, "손상되었거나 유효하지 않은 이미지 파일입니다."
+
     filename = secure_filename(file.filename)
     unique_name = f"{secrets.token_hex(16)}_{filename}"
-    upload_dir = current_app.config["UPLOAD_FOLDER"]
-    os.makedirs(upload_dir, exist_ok=True)
-    filepath = os.path.join(upload_dir, unique_name)
-    file.save(filepath)
+    filepath = os.path.join(current_app.config["UPLOAD_FOLDER"], unique_name)
+    # 원본 대신 재인코딩해서 저장 → 메타데이터/페이로드 제거
+    img.save(filepath)
     return unique_name, None
 
 
@@ -136,3 +146,4 @@ def lock_account(user):
 def reset_login_attempts(user):
     user.login_attempts = 0
     user.locked_until = None
+

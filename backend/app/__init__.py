@@ -25,7 +25,8 @@ def create_app(config_class=Config):
 
     os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
 
-    CORS(app, resources={r"/api/*": {"origins": "*"}}, supports_credentials=True)
+    FRONTEND_ORIGIN = os.environ.get("FRONTEND_ORIGIN", "http://localhost:8080")
+    CORS(app, resources={r"/api/*": {"origins": [FRONTEND_ORIGIN]}}, supports_credentials=False)
 
     db.init_app(app)
     jwt.init_app(app)
