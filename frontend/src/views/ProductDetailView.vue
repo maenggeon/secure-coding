@@ -10,12 +10,15 @@
         <div class="seller">
           <h3>판매자</h3>
           <router-link :to="`/users/${product.seller?.id}`">
-            {{ product.seller?.nickname }} (@{{ product.seller?.username }})
+            {{ product.seller?.nickname }}
           </router-link>
         </div>
         <div class="actions" v-if="auth.isLoggedIn">
           <button class="btn btn-primary" @click="startChat" v-if="!isOwner">1:1 채팅</button>
           <button class="btn btn-danger" @click="showReport = true" v-if="!isOwner">신고</button>
+          <router-link v-if="isOwner" :to="`/products/${product.id}/edit`" class="btn btn-primary">
+            상품 수정
+          </router-link>
         </div>
       </div>
     </div>
@@ -60,6 +63,7 @@ async function fetchProduct() {
 async function startChat() {
   const { data } = await api.post('/chat/rooms/direct', {
     target_user_id: product.value.seller.id,
+    product_id: product.value.id,
   })
   if (data.success) router.push({ path: '/chat', query: { room: data.data.room_id } })
 }

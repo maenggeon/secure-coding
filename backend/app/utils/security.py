@@ -109,10 +109,18 @@ def sanitize_text(text, max_length=1000):
     return text
 
 
+def as_utc(value):
+    """Treat database datetimes without timezone data as UTC."""
+    if value is not None and value.tzinfo is None:
+        return value.replace(tzinfo=timezone.utc)
+    return value
+
+
 def is_account_locked(user):
-    if user.locked_until and user.locked_until > datetime.now(timezone.utc):
+    locked_until = as_utc(user.locked_until)
+    if locked_until and locked_until > datetime.now(timezone.utc):
         return True
-    if user.locked_until and user.locked_until <= datetime.now(timezone.utc):
+    if locked_until and locked_until <= datetime.now(timezone.utc):
         user.login_attempts = 0
         user.locked_until = None
     return False

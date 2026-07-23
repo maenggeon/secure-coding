@@ -1,7 +1,8 @@
 from flask import Blueprint, request
 
 from app.extensions import db, socketio
-from app.models.chat import ChatMessage
+from app.models.chat import ChatMessage, ChatParticipant, ChatRoom
+from app.models.product import Product
 from app.models.user import User
 from app.services.audit_service import log_event
 from app.services.chat_service import (
@@ -60,9 +61,11 @@ def send_global_message(user):
 def create_direct_room(user):
     data = request.get_json(silent=True) or {}
     target_user_id = data.get("target_user_id")
+    product_id = data.get("product_id")
 
     try:
         target_user_id = int(target_user_id)
+        product_id = int(product_id)
     except (TypeError, ValueError):
         return error_response("대상 사용자 ID가 올바르지 않습니다.", 400)
 
@@ -70,11 +73,50 @@ def create_direct_room(user):
     if not target or target.status == "DELETED":
         return error_response("대상 사용자를 찾을 수 없습니다.", 404)
 
-    room = get_or_create_direct_room(user.id, target_user_id)
+    product = Product.query.get(product_id)
+    if not product or product.status != "ACTIVE":
+        return error_response("상품을 찾을 수 없습니다.", 404)
+    if product.seller_id != target_user_id:
+        return error_response("상품 판매자와 대화 상대가 일치하지 않습니다.", 400)
+
+    room = get_or_create_direct_room(user.id, target_user_id, product_id)
     if not room:
         return error_response("자기 자신과는 채팅할 수 없습니다.", 400)
 
     return success_response({"room_id": room.id, "target_user": target.to_public_dict()})
+
+
+@chat_bp.route("/rooms/direct", methods=["GET"])
+@login_required
+@active_user_required
+def list_direct_rooms(user):
+    """Return the current user's direct-message inbox."""
+    rooms = (
+        ChatRoom.query.filter_by(room_type="DIRECT")
+        .join(ChatParticipant)
+        .filter(ChatParticipant.user_id == user.id)
+        .order_by(ChatRoom.created_at.desc())
+        .all()
+    )
+
+    items = []
+    for room in rooms:
+        other_participant = ChatParticipant.query.filter(
+            ChatParticipant.room_id == room.id,
+            ChatParticipant.user_id != user.id,
+        ).first()
+        if not other_participant:
+            continue
+
+        items.append(
+            {
+                "room_id": room.id,
+                "other_user": other_participant.user.to_public_dict(),
+                "product": room.product.to_list_dict() if room.product else None,
+            }
+        )
+
+    return success_response(items)
 
 
 @chat_bp.route("/rooms/<int:room_id>/messages", methods=["GET"])

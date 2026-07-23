@@ -6,7 +6,7 @@ from flask_jwt_extended import get_jwt_identity, verify_jwt_in_request
 from app.extensions import db
 from app.models.csrf_token import CsrfToken
 from app.models.user import User
-from app.utils.security import error_response, get_client_ip
+from app.utils.security import as_utc, error_response, get_client_ip
 from datetime import datetime, timezone
 
 
@@ -67,7 +67,7 @@ def csrf_required(fn):
             return error_response("CSRF 토큰이 필요합니다.", 403)
 
         csrf = CsrfToken.query.filter_by(user_id=user_id, token=token).first()
-        if not csrf or csrf.expires_at < datetime.now(timezone.utc):
+        if not csrf or as_utc(csrf.expires_at) < datetime.now(timezone.utc):
             return error_response("유효하지 않은 CSRF 토큰입니다.", 403)
         return fn(*args, **kwargs)
 

@@ -2,6 +2,7 @@ import os
 
 from flask import send_from_directory
 from flask_cors import CORS
+from sqlalchemy import text
 
 from app.config import Config
 from app.extensions import db, jwt, socketio
@@ -67,6 +68,14 @@ def create_app(config_class=Config):
 
     with app.app_context():
         db.create_all()
+        if db.engine.dialect.name == "postgresql":
+            db.session.execute(
+                text(
+                    "ALTER TABLE chat_rooms "
+                    "ADD COLUMN IF NOT EXISTS product_id INTEGER REFERENCES products(id)"
+                )
+            )
+            db.session.commit()
         _seed_admin(app)
         get_or_create_global_room()
 

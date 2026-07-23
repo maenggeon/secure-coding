@@ -29,13 +29,13 @@ def get_or_create_global_room():
     return room
 
 
-def get_or_create_direct_room(user1_id, user2_id):
+def get_or_create_direct_room(user1_id, user2_id, product_id):
     if user1_id == user2_id:
         return None
 
     rooms = (
         db.session.query(ChatRoom)
-        .filter(ChatRoom.room_type == "DIRECT")
+        .filter(ChatRoom.room_type == "DIRECT", ChatRoom.product_id == product_id)
         .join(ChatParticipant)
         .filter(ChatParticipant.user_id.in_([user1_id, user2_id]))
         .all()
@@ -46,7 +46,7 @@ def get_or_create_direct_room(user1_id, user2_id):
         if participant_ids == {user1_id, user2_id}:
             return room
 
-    room = ChatRoom(room_type="DIRECT")
+    room = ChatRoom(room_type="DIRECT", product_id=product_id)
     db.session.add(room)
     db.session.flush()
     db.session.add(ChatParticipant(room_id=room.id, user_id=user1_id))

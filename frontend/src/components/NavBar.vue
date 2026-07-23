@@ -8,7 +8,6 @@
           <router-link to="/products/new">판매</router-link>
           <router-link to="/my/products">내 상품</router-link>
           <router-link to="/chat">채팅</router-link>
-          <router-link to="/transfer">송금</router-link>
           <router-link to="/my/page">마이페이지</router-link>
           <router-link v-if="auth.isAdmin" to="/admin">관리자</router-link>
           <span class="balance" v-if="auth.user">{{ auth.user.balance?.toLocaleString() }}원</span>

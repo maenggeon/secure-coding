@@ -8,10 +8,12 @@ class ChatRoom(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     room_type = db.Column(db.String(20), nullable=False, index=True)
+    product_id = db.Column(db.Integer, db.ForeignKey("products.id"), nullable=True, index=True)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
 
     participants = db.relationship("ChatParticipant", backref="room", lazy="dynamic")
     messages = db.relationship("ChatMessage", backref="room", lazy="dynamic")
+    product = db.relationship("Product", backref="chat_rooms")
 
 
 class ChatParticipant(db.Model):
